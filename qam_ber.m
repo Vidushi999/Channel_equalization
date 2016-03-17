@@ -8,6 +8,9 @@ numSymPerFrame = 100;   % Number of QAM symbols per frame
 berEstR = zeros(size(EbNoVec));
 berEstC = zeros(size(EbNoVec));
 
+
+
+
 for n = 1:length(EbNoVec)
     % Convert Eb/No to SNR
     snrdB = EbNoVec(n) + 10*log10(k);
@@ -28,6 +31,41 @@ for n = 1:length(EbNoVec)
     [filtered_signal, y,fc] = lmsAlgoOrig(channel_op, desired_output, step_size,order);
     mse(n)=sqrt(mean(y.*y));%error should be less than 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 
+    
+    %Systhesis Estimated BER Graph using genral 1000 symbol binary i/p 
+    order = 8;
+    inp = randi([0,1],1,1000);
+    inp_power = 0.25;
+    noi_power = inp_power/db2mag(snrdB);
+    noi=sqrt(noi_power)*randn(1,1007);
+    
+    inp_v = [zeros(1,order-1),inp(1:end)];
+    inp_v = inp_v + noi;
+    
+    out = zeros(1,1000);
+    for j =1:1000
+        out(j) = sum(inp_v(j:j+order-1).*fc);
+    end
+    
+    for j=1:1000
+        if out(j)<0.5
+            out(j)=0;
+        else 
+            out(j)=1;
+        end
+    end
+    
+    for j =1:1000
+        if out(j)==inp(j)
+        else
+            numErrs = numErrs +1;
+        end
+    end
+    numBits = 1000;
+    berEst(n) = numErrs/numBits;
+    display('Using general way esti.BER = ')
+    display(berEst(n))
+    
     while numBits < 1e4 %1e7%numErrs < 200 && numBits < 1e7 %testing over 10^6 bits
         % Generate binary data and convert to symbols
         dataIn = randi([0 1],numSymPerFrame,k);
@@ -63,6 +101,8 @@ for n = 1:length(EbNoVec)
     end
       berEst(n) = numErrs/numBits;
 end
+
+
 end
 %berTheory = berawgn(EbNoVec,'qam',M);
 
